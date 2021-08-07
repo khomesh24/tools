@@ -12,12 +12,14 @@ def main():
     args = parser.parse_args()
 
     obj = gd.GdriveDownloader()
-    obj.download_file(args.cred, args.filename)
+    result = obj.download_file(args.cred, args.filename)
+    if result == 0:
+        print("Successfully downloaded {0}".format(args.filename))
+        exit(0)
+    else:
+        print(result)
+        exit(1)
 
 
 if __name__ == '__main__':
-    main()
-    '''a = gd.gdrive_downloader()
-    #a.download_file('Khomesh_resume_latest')
-    a.download_file('My New Text Document')
-    '''
+    main()  

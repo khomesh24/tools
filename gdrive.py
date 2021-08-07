@@ -52,11 +52,10 @@ class GdriveDownloader:
         '''
         file_id = ''
         for file in items:
-            if file_name in file['name']:
+            if file_name == file['name']:
                 file_id = file['id']
         if file_id == '':
-            print("Error: File '{0}' not found".format(file_name))
-            return 1
+            return "Error: File " + file_name + " not found"
 
         '''
         Use service to download file from drive
@@ -68,10 +67,8 @@ class GdriveDownloader:
         while done is False:
             status, done = downloader.next_chunk()
             print('Download progress {0}'.format(status.progress() * 100))
-
         fh.seek(0)
         with open(file_name, 'wb') as f:
             f.write(fh.read())
             f.close()
-        print('File downloaded')
         return 0
