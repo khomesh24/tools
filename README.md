@@ -26,5 +26,5 @@
 - Running the command
 
 ~~~
-# python main.py --cred <Credential json file> <filename to be downloaded>
+# python main.py --cred <Credential json file> --output <Save output to a file> <filename to be downloaded>
 ~~~

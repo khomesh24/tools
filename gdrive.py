@@ -11,55 +11,64 @@ class GdriveDownloader:
     def __init__(self):
         self.scope = ['https://www.googleapis.com/auth/drive']
 
-    def download_file(self, cred_file, file_name):
+    def get_token(self, cred_file):
+        """
+            Validate the token and refresh of required
+        """
         creds = None
-
-        '''
-        token.json store the temporary token, We are loading the token and refreshing it if expired.
-        If file is missing we are using the cred_file to create new token.
-        '''
+        # token.json store the temporary token, We are loading the token and refreshing it if expired.
+        # If file is missing we are using the cred_file to create new token.
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file('token.json', self.scope)
 
         if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    cred_file, self.scope)
-                creds = flow.run_local_server(port=0)
+            try:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        cred_file, self.scope)
+                    creds = flow.run_local_server(port=0)
+            except:
+                print("Error: Not able to generate token")
+                exit(1)
 
-            '''
-            Save the credentials in token.json for next run
-            '''
+            # Save the credentials in token.json for next run
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())
+        return creds
 
-        '''
-        Using Creds objects to create service request
-        '''
-        service = build('drive', 'v3', credentials=creds)
+    def get_fileID(self, service, filename):
+        """
+            Get the fileID from filename
+        """
 
-        '''
-        Use service to fetch the list file from drive
-        '''
+        # Use service to fetch the list file from drive
         results = service.files().list(
             pageSize=1000, fields="nextPageToken, files(id, name)").execute()
         items = results.get('files', [])
 
-        '''
-        Get the fileid from name and if file not found it will through an error
-        '''
+        # Get the fileid from name and if file not found it will through an error
         file_id = ''
         for file in items:
-            if file_name == file['name']:
+            if filename == file['name']:
                 file_id = file['id']
-        if file_id == '':
-            return "Error: File " + file_name + " not found"
+        return file_id
 
-        '''
-        Use service to download file from drive
-        '''
+    def download_file(self, cred_file, output_file, filename):
+        """
+            Download the file using fileID and store file the output file
+        """
+        creds = self.get_token(cred_file)
+
+        # Using Creds objects to create service request
+        service = build('drive', 'v3', credentials=creds)
+
+        file_id = self.get_fileID(service, filename)
+        if file_id == '':
+            return "Error: File " + filename + " not found"
+
+        # Use service to download file from drive
         request = service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fd=fh, request=request)
@@ -68,7 +77,7 @@ class GdriveDownloader:
             status, done = downloader.next_chunk()
             print('Download progress {0}'.format(status.progress() * 100))
         fh.seek(0)
-        with open(file_name, 'wb') as f:
+        with open(output_file, 'wb') as f:
             f.write(fh.read())
             f.close()
         return 0
