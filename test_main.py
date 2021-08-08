@@ -1,13 +1,22 @@
 import unittest
-import gdrive
+from gdrive import GdriveDownloader
+
+credentialFile = 'credentials.json'
+filename = 'abc.txt'
+outputFile = 'xyz.txt'
 
 
-class Test_Gdrive(unittest.TestCase):
+class test_Gdrive(unittest.TestCase):
+    def test_upload(self):
+        obj = GdriveDownloader()
+        fileID = obj.upload_file(credentialFile, filename)
+        self.assertIsNotNone(fileID)
+
     def test_success(self):
-        obj = gdrive.GdriveDownloader()
-        self.assertEqual(obj.download_file("credentials.json", "abc.txt", "My New Text Document"), 0)
+        obj = GdriveDownloader()
+        self.assertEqual(obj.download_file(credentialFile, outputFile, filename), 0)
 
     def test_failed_file_not_found(self):
-        obj = gdrive.GdriveDownloader()
-        self.assertEqual(obj.download_file("credentials.json", "", "file_doesnt_exit"),
+        obj = GdriveDownloader()
+        self.assertEqual(obj.download_file(credentialFile, "", "file_doesnt_exit"),
                          'Error: File file_doesnt_exit not found')

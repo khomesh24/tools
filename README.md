@@ -23,6 +23,8 @@
 # pip install -r requirements.txt
 ~~~
 
+- [Create a credentials.json file](https://developers.google.com/workspace/guides/create-credentials)
+
 - Running the command
 
 ~~~

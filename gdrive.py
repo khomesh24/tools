@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 
 class GdriveDownloader:
@@ -19,7 +19,11 @@ class GdriveDownloader:
         # token.json store the temporary token, We are loading the token and refreshing it if expired.
         # If file is missing we are using the cred_file to create new token.
         if os.path.exists('token.json'):
-            creds = Credentials.from_authorized_user_file('token.json', self.scope)
+            try:
+                creds = Credentials.from_authorized_user_file('token.json', self.scope)
+            except ConnectionError:
+                print("Not able to connect to Google Apis")
+                exit(1)
 
         if not creds or not creds.valid:
             try:
@@ -29,8 +33,8 @@ class GdriveDownloader:
                     flow = InstalledAppFlow.from_client_secrets_file(
                         cred_file, self.scope)
                     creds = flow.run_local_server(port=0)
-            except:
-                print("Error: Not able to generate token")
+            except ConnectionError as err:
+                print(err)
                 exit(1)
 
             # Save the credentials in token.json for next run
@@ -77,7 +81,35 @@ class GdriveDownloader:
             status, done = downloader.next_chunk()
             print('Download progress {0}'.format(status.progress() * 100))
         fh.seek(0)
+
+        # Save the file in output file
         with open(output_file, 'wb') as f:
             f.write(fh.read())
             f.close()
         return 0
+
+    def upload_file(self, cred_file, filename):
+        """
+            Upload file on drive
+        """
+        if os.path.exists(filename):
+            creds = self.get_token(cred_file)
+
+            # Using Creds objects to create service request
+            service = build('drive', 'v3', credentials=creds)
+
+            file_meta = {
+                'name': filename
+            }
+
+            media = MediaFileUpload(filename, resumable=True)
+
+            file = service.files().create(media_body=media,
+                                          body=file_meta,
+                                          fields='id').execute()
+
+            print("File " + filename + " uploaded successfully")
+            return file.get('id')
+        else:
+            print("File" + filename + " not found")
+            return 1
